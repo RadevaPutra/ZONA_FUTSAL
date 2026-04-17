@@ -39,16 +39,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: const Color(0xFF1E2623), // Warna solid (tidak transparan) agar teks di atasnya tajam
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
                     child: Column(
                       children: [
                         _summaryRow("Lapangan", widget.booking.field.name),
                         _summaryRow("Tipe", widget.booking.subField),
                         _summaryRow("Jadwal", "${widget.booking.startTime} - ${widget.booking.endTime}"),
-                        const Divider(color: Colors.white10, height: 24),
+                        const Divider(color: Colors.white24, height: 24),
                         _summaryRow("Total Bayar", "Rp ${widget.booking.totalPrice}", isTotal: true),
                       ],
                     ),
@@ -64,7 +64,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   _paymentOption("Virtual Account", Icons.vibration_rounded),
                   
                   const SizedBox(height: 16),
-                  const Text("Bank Transfer", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                  _sectionLabel("Bank Transfer"),
                   const SizedBox(height: 8),
                   _paymentOption("Bank BCA", Icons.account_balance_rounded),
                   _paymentOption("Bank BNI", Icons.account_balance_rounded),
@@ -181,38 +181,71 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return GestureDetector(
       onTap: () => setState(() => selectedMethod = title),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isSelected ? AppColors.accent : Colors.white10),
+          color: isSelected ? AppColors.accent.withOpacity(0.2) : const Color(0xFF1E2623),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.accent : Colors.white.withOpacity(0.1),
+            width: 1.5
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? AppColors.accent : Colors.white38, size: 20),
+            Icon(icon, color: isSelected ? AppColors.accent : Colors.white, size: 22),
             const SizedBox(width: 16),
-            Text(title, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            Text(
+              title, 
+              style: const TextStyle(
+                color: Colors.white, // Selalu Putih Solid
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              )
+            ),
             const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 18),
+            if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _sectionLabel(String text) => Text(text.toUpperCase(), 
-      style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2));
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      text.toUpperCase(), 
+      style: const TextStyle(
+        color: AppColors.accent, // Gunakan warna hijau terang (Aksen)
+        fontSize: 12, 
+        fontWeight: FontWeight.w900, 
+        letterSpacing: 1.5,
+      )
+    ),
+  );
 
   Widget _summaryRow(String label, String value, {bool isTotal = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 13)),
-          Text(value, style: TextStyle(color: isTotal ? AppColors.accent : Colors.white, 
-              fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold, fontSize: isTotal ? 15 : 13)),
+          Text(
+            label, 
+            style: const TextStyle(
+              color: Colors.white, // Putih solid, bukan transparan
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            )
+          ),
+          Text(
+            value, 
+            style: TextStyle(
+              color: isTotal ? AppColors.accent : Colors.white, 
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold, // Dipertebal
+              fontSize: isTotal ? 18 : 14, // Ukuran diperbesar sedikit
+            )
+          ),
         ],
       ),
     );

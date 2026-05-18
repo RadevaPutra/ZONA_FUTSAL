@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
+import '../services/payment_service.dart';
+import '../services/notification_service.dart';
 import 'home.dart';
 import 'booking.dart';
+import 'confirm.dart';
 
 class PaymentScreen extends StatefulWidget {
   final Booking booking;
@@ -14,6 +19,49 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   String selectedMethod = 'QRIS';
+
+  void _sendToWhatsApp() async {
+    final adminNumber = "6281933053869"; // Nomor admin diperbarui
+    final message = "Halo Admin, saya telah melakukan pembayaran.\n\n"
+        "Detail Booking:\n"
+        "- Lapangan: ${widget.booking.field.name}\n"
+        "- Jadwal: ${widget.booking.startTime}\n"
+        "- Total: Rp ${widget.booking.totalPrice}";
+
+    final url = "https://wa.me/$adminNumber?text=${Uri.encodeComponent(message)}";
+    final uri = Uri.parse(url);
+    
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tidak bisa membuka WhatsApp")),
+        );
+      }
+    }
+  }
+
+  void _processPayment() {
+    try {
+      // 1. Tampilkan Notifikasi (Fire and Forget)
+      NotificationService().showNotification(
+        "Pembayaran Berhasil! ⚽", 
+        "Booking ${widget.booking.field.name} berhasil dikonfirmasi."
+      );
+      
+      // 2. Navigasi ke Halaman Konfirmasi/Tiket
+      // Menggunakan push agar lebih stabil dan bisa kembali jika diperlukan
+      Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (context) => ConfirmScreen(booking: widget.booking))
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Terjadi kesalahan: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +81,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // BAGIAN 1: DETAIL TRANSAKSI
                   _sectionLabel("Ringkasan Pesanan"),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E2623), // Warna solid (tidak transparan) agar teks di atasnya tajam
+                      color: const Color(0xFF1E2623), 
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
@@ -55,28 +102,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
 
                   const SizedBox(height: 32),
-
-                  // BAGIAN 2: METODE PEMBAYARAN
                   _sectionLabel("Metode Pembayaran"),
                   const SizedBox(height: 12),
-                  _paymentOption("QRIS", Icons.qr_code_scanner_rounded),
-                  _paymentOption("Gopay", Icons.account_balance_wallet_rounded),
-                  _paymentOption("Virtual Account", Icons.vibration_rounded),
+                  _paymentOption("QRIS", Icons.qr_code_scanner_rounded, detail: "SCAN_BCA_7670752148"),
+                  _paymentOption("Gopay", Icons.account_balance_wallet_rounded, detail: "70001081923457465"),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _sectionLabel("Bank Transfer"),
-                  const SizedBox(height: 8),
-                  _paymentOption("Bank BCA", Icons.account_balance_rounded),
-                  _paymentOption("Bank BNI", Icons.account_balance_rounded),
-                  _paymentOption("Bank Mandiri", Icons.account_balance_rounded),
+                  const SizedBox(height: 12),
+                  _paymentOption("Bank BCA", Icons.account_balance_rounded, detail: "7670752148"),
+                  _paymentOption("Bank BNI", Icons.account_balance_rounded, detail: "0987654321"),
+                  _paymentOption("Bank Mandiri", Icons.account_balance_rounded, detail: "1234567890"),
                   
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-
-          // BAGIAN 3: TOMBOL AKSI
           _buildActionButtons(),
         ],
       ),
@@ -111,7 +153,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () => _showSuccessPopup(context),
+                onPressed: _processPayment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -147,9 +189,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {}, 
-                    icon: const Icon(Icons.share, color: AppColors.darkGreen),
-                    label: const Text("Share", style: TextStyle(color: AppColors.darkGreen)),
+                    onPressed: _sendToWhatsApp, 
+                    icon: const Icon(Icons.send, color: AppColors.darkGreen),
+                    label: const Text("Kirim Bukti ke WA", style: TextStyle(color: AppColors.darkGreen, fontSize: 12)),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       side: const BorderSide(color: AppColors.darkGreen),
@@ -176,35 +218,145 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _paymentOption(String title, IconData icon) {
+  Widget _paymentOption(String title, IconData icon, {String? detail}) {
     bool isSelected = selectedMethod == title;
     return GestureDetector(
       onTap: () => setState(() => selectedMethod = title),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent.withOpacity(0.2) : const Color(0xFF1E2623),
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? Colors.white.withOpacity(0.08) : const Color(0xFF1E2623),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? AppColors.accent : Colors.white.withOpacity(0.1),
-            width: 1.5
+            color: isSelected ? AppColors.accent : Colors.white.withOpacity(0.05),
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppColors.accent.withOpacity(0.15),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ] : [],
         ),
-        child: Row(
+        child: Column(
           children: [
-            Icon(icon, color: isSelected ? AppColors.accent : Colors.white, size: 22),
-            const SizedBox(width: 16),
-            Text(
-              title, 
-              style: const TextStyle(
-                color: Colors.white, // Selalu Putih Solid
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              )
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: isSelected ? AppColors.accent : Colors.white70, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  title, 
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.white70,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 15,
+                  )
+                ),
+                const Spacer(),
+                if (isSelected) 
+                  const Icon(Icons.check_circle, color: AppColors.accent, size: 22)
+                else
+                  Icon(Icons.circle_outlined, color: Colors.white.withOpacity(0.1), size: 20),
+              ],
             ),
-            const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
+            if (isSelected && detail != null) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.accent, // Latar belakang hijau terang
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accent.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    if (title == "QRIS")
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: QrImageView(
+                              data: detail,
+                              version: QrVersions.auto,
+                              size: 160.0,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text("Scan QRIS untuk pembayaran instan", 
+                            style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title == "Gopay" ? "Nomor HP / ID" : "Nomor Rekening", 
+                                style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                              const SizedBox(height: 6),
+                              Text(
+                                detail, 
+                                style: const TextStyle(
+                                  color: Colors.black, // Teks HITAM sesuai permintaan
+                                  fontWeight: FontWeight.w900, 
+                                  fontSize: 20,
+                                  letterSpacing: 1.2,
+                                )
+                              ),
+                            ],
+                          ),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("$title berhasil disalin!"),
+                                    backgroundColor: AppColors.darkGreen,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.copy_all_rounded, color: Colors.black, size: 22),
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ]
           ],
         ),
       ),
@@ -216,7 +368,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     child: Text(
       text.toUpperCase(), 
       style: const TextStyle(
-        color: AppColors.accent, // Gunakan warna hijau terang (Aksen)
+        color: AppColors.accent,
         fontSize: 12, 
         fontWeight: FontWeight.w900, 
         letterSpacing: 1.5,
@@ -233,7 +385,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Text(
             label, 
             style: const TextStyle(
-              color: Colors.white, // Putih solid, bukan transparan
+              color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             )
@@ -242,8 +394,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             value, 
             style: TextStyle(
               color: isTotal ? AppColors.accent : Colors.white, 
-              fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold, // Dipertebal
-              fontSize: isTotal ? 18 : 14, // Ukuran diperbesar sedikit
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold,
+              fontSize: isTotal ? 18 : 14,
             )
           ),
         ],

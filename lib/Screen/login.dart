@@ -251,48 +251,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-                    FadeTransition(
-                      opacity: _fadeAnim,
-                      child: Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.white.withOpacity(0.15))),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: Text('atau',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withOpacity(0.35))),
-                          ),
-                          Expanded(child: Divider(color: Colors.white.withOpacity(0.15))),
-                        ],
-                      ),
-                    ),
 
-                    const SizedBox(height: 24),
-                    FadeTransition(
-                      opacity: _fadeAnim,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Google',
-                              iconData: Icons.g_mobiledata_rounded,
-                              onPressed: () {}, 
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Facebook',
-                              iconData: Icons.facebook,
-                              iconColor: const Color(0xFF1877F2),
-                              onPressed: () {}, 
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
 
                     const SizedBox(height: 40),
                     FadeTransition(
@@ -387,35 +346,4 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildSocialButton({
-    required String label,
-    required IconData iconData,
-    Color? iconColor,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        side: BorderSide(color: Colors.white.withOpacity(0.15)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white.withOpacity(0.05),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(iconData, color: iconColor ?? Colors.white, size: 24),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

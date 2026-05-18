@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'edit_profile.dart';
+import 'notifikasi.dart';
+import 'pusat_bantuan.dart';
+import 'keamanan_password.dart';
+import 'riwayat_transaksi.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -7,7 +12,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg, 
+      backgroundColor: AppColors.bg,
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
@@ -15,58 +20,56 @@ class ProfileScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1A1F2E), 
-              Color(0xFF0F3D2E), 
+              Color(0xFF1A1F2E),
+              Color(0xFF0F3D2E),
             ],
           ),
         ),
         child: Column(
           children: [
             const SizedBox(height: 80),
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.accent.withOpacity(0.5), width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withOpacity(0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  )
-                ],
-              ),
-              child: const CircleAvatar(
-                radius: 55,
-                backgroundColor: Color(0xFF0F3D2E),
-                backgroundImage: NetworkImage(
-                  'https://ui-avatars.com/api/?name=Gde+Radeva&background=0F3D2E&color=fff&size=256'
+
+            const CircleAvatar(
+              radius: 55,
+              backgroundColor: Color(0xFF0F3D2E),
+              child: Text(
+                "GR",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
+
             const Text(
               "Gde Radeva Putra Suniantara",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
               ),
             ),
+
             const SizedBox(height: 5),
-            Text(
+
+            const Text(
               "radevaputra@gmail.com",
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white70,
                 fontSize: 14,
               ),
             ),
+
             const SizedBox(height: 40),
+
             Expanded(
               child: Container(
                 padding: const EdgeInsets.only(top: 20),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.20),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(35),
                     topRight: Radius.circular(35),
@@ -75,16 +78,88 @@ class ProfileScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   children: [
-                    _profileMenu(Icons.person_outline_rounded, "Edit Profil"),
-                    _profileMenu(Icons.notifications_none_rounded, "Notifikasi"),
-                    _profileMenu(Icons.history_rounded, "Riwayat Transaksi"),
-                    _profileMenu(Icons.security_rounded, "Keamanan & Password"),
-                    _profileMenu(Icons.help_outline_rounded, "Pusat Bantuan"),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      child: Divider(color: Colors.white10, thickness: 1),
+
+                    _menu(
+                      context,
+                      Icons.person_outline,
+                      "Edit Profil",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfilePage(),
+                          ),
+                        );
+                      },
                     ),
-                    _profileMenu(Icons.logout_rounded, "Keluar", isLogout: true),
+
+                    _menu(
+                      context,
+                      Icons.notifications_none,
+                      "Notifikasi",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotifikasiPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    _menu(
+                      context,
+                      Icons.history,
+                      "Riwayat Transaksi",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RiwayatTransaksiPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    _menu(
+                      context,
+                      Icons.security,
+                      "Keamanan & Password",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const KeamananPasswordPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    _menu(
+                      context,
+                      Icons.help_outline,
+                      "Pusat Bantuan",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PusatBantuanPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+                    const Divider(color: Colors.white12, thickness: 1, indent: 20, endIndent: 20),
+                    const SizedBox(height: 10),
+
+                    _menu(
+                      context,
+                      Icons.logout,
+                      "Keluar",
+                      () {},
+                      isLogout: true,
+                    ),
                   ],
                 ),
               ),
@@ -95,41 +170,24 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _profileMenu(IconData icon, String title, {bool isLogout = false}) {
+  Widget _menu(BuildContext context, IconData icon, String title, VoidCallback onTap, {bool isLogout = false}) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isLogout ? Colors.redAccent.withOpacity(0.05) : Colors.white.withOpacity(0.03),
+        color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(15),
       ),
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isLogout ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon, 
-            color: isLogout ? Colors.redAccent : AppColors.accent,
-            size: 22,
-          ),
-        ),
+        leading: Icon(icon, color: isLogout ? Colors.redAccent : AppColors.accent),
         title: Text(
-          title, 
+          title,
           style: TextStyle(
-            color: isLogout ? Colors.redAccent : Colors.white.withOpacity(0.9),
-            fontWeight: FontWeight.w500,
+            color: isLogout ? Colors.redAccent : Colors.white,
             fontSize: 15,
           ),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios_rounded, 
-          size: 14, 
-          color: isLogout ? Colors.redAccent.withOpacity(0.5) : Colors.white24,
-        ),
-        onTap: () {
-        },
+        trailing: Icon(Icons.arrow_forward_ios, size: 15, color: isLogout ? Colors.redAccent : Colors.white38),
+        onTap: onTap,
       ),
     );
   }

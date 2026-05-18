@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import 'booking.dart';
 import 'schedule.dart';
 import 'profile.dart';
+import '../widgets/ball_animation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.home_rounded, label: 'Beranda'),
-    _NavItem(icon: Icons.calendar_today_rounded, label: 'Jadwal'),
+    _NavItem(icon: Icons.calendar_today_rounded, label: 'Lapangan'),
     _NavItem(icon: Icons.person_rounded, label: 'Profil'),
   ];
 
@@ -58,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: List.generate(_navItems.length, (i) {
               final item = _navItems[i];
               final isActive = _selectedNav == i;
-              return GestureDetector(
+              return FeatureBallAnimation(
                 onTap: () => setState(() => _selectedNav = i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -103,54 +105,328 @@ class HomeContent extends StatefulWidget {
   State<HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class _HomeContentState extends State<HomeContent> with SingleTickerProviderStateMixin {
+  late AnimationController _entranceController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  bool get hasActiveBooking => AppData.recentBookings.isNotEmpty; 
+  bool isNearMeActive = false;
+  String _activeHistoryFilter = 'Semua';
+  final List<String> _historyFilters = ['Semua', 'Hari ini', '3 Hari', '7 Hari', 'Bulan lalu'];
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeIn),
+    );
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  List<Booking> get _filteredHistory {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return AppData.recentBookings.where((booking) {
+      if (_activeHistoryFilter == 'Semua') return true;
+      final bookingDate = DateTime(booking.date.year, booking.date.month, booking.date.day);
+      final difference = today.difference(bookingDate).inDays;
+
+      if (_activeHistoryFilter == 'Hari ini') {
+        return difference == 0;
+      } else if (_activeHistoryFilter == '3 Hari') {
+        return difference >= 0 && difference <= 3;
+      } else if (_activeHistoryFilter == '7 Hari') {
+        return difference >= 0 && difference <= 7;
+      } else if (_activeHistoryFilter == 'Bulan lalu') {
+        // Last month logic
+        int lastMonth = now.month - 1;
+        int year = now.year;
+        if (lastMonth == 0) {
+          lastMonth = 12;
+          year -= 1;
+        }
+        return booking.date.year == year && booking.date.month == lastMonth;
+      }
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Simulasi data (Ganti ke [] untuk melihat tampilan kosong)
-    List<Booking> activeBookings = AppData.recentBookings.where((b) => b.status == 'Aktif').toList();
-    List<Booking> recentHistory = AppData.recentBookings.where((b) => b.status == 'Selesai').toList();
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              _buildHeader(), 
+              const SizedBox(height: 24),
+              _sectionLabel("Jadwal Anda"),
+              const SizedBox(height: 12),
+              hasActiveBooking 
+                  ? _buildBookingReminder() 
+                  : _buildEmptyState(Icons.event_busy_rounded, "Tidak ada jadwal tanding"),
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          _buildHeader(), // Termasuk Lokasi & Notifikasi
-          const SizedBox(height: 24),
-          
-          // 1. Pengingat Lapangan / Empty State Jadwal
-          activeBookings.isEmpty 
-            ? _buildEmptyJadwal() 
-            : _buildBookingReminder(activeBookings.first),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _sectionLabel("Lapangan Tersedia"),
+                    GestureDetector(
+                      onTap: () => setState(() => isNearMeActive = !isNearMeActive),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isNearMeActive ? AppColors.accent : Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: isNearMeActive ? AppColors.accent : Colors.white10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.near_me_rounded, 
+                                 size: 14, 
+                                 color: isNearMeActive ? Colors.black : Colors.white70),
+                            const SizedBox(width: 6),
+                            Text("Near Me", 
+                                 style: TextStyle(
+                                   color: isNearMeActive ? Colors.black : Colors.white70,
+                                   fontSize: 11,
+                                   fontWeight: FontWeight.bold,
+                                 )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildFieldList(),
 
-          const SizedBox(height: 32),
-          _buildSectionHeader('LAPANGAN TERSEDIA', () {}),
-          _buildAvailableFields(),
-
-          const SizedBox(height: 32),
-          
-          // 2. Riwayat Terbaru / Recently
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('RIWAYAT TERBARU', style: AppTextStyles.caption),
-                const SizedBox(height: 16),
-                recentHistory.isEmpty 
-                  ? _buildEmptyHistory() 
-                  : _buildRecentHistoryList(recentHistory),
-              ],
-            ),
+              const SizedBox(height: 32),
+              _sectionLabel("Riwayat"),
+              const SizedBox(height: 12),
+              _buildHistoryFilterBar(),
+              const SizedBox(height: 12),
+              _buildHistoryList(),
+              const SizedBox(height: 20),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
 
-  // HEADER: Lokasi di sebelah notifikasi & Icon Lokasi Pengguna
+  Widget _buildHistoryFilterBar() {
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _historyFilters.length,
+        itemBuilder: (context, index) {
+          final filter = _historyFilters[index];
+          final isActive = _activeHistoryFilter == filter;
+          return GestureDetector(
+            onTap: () => setState(() => _activeHistoryFilter = filter),
+            child: Container(
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isActive ? AppColors.accent : Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isActive ? AppColors.accent : Colors.white.withOpacity(0.1),
+                ),
+              ),
+              child: Text(
+                filter,
+                style: TextStyle(
+                  color: isActive ? Colors.black : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHistoryList() {
+    final filtered = _filteredHistory;
+    if (filtered.isEmpty) {
+      return _buildEmptyState(Icons.event_busy_rounded, "Belum ada riwayat pesanan");
+    }
+    
+    return Column(
+      children: filtered.map((booking) => _buildHistoryItem(booking)).toList(),
+    );
+  }
+
+  Widget _buildHistoryItem(Booking booking) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.sports_soccer, color: AppColors.accent, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(booking.field.name, 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text("${booking.subField} • ${booking.startTime}", 
+                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+          ),
+          Text(
+            "Rp ${booking.totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}",
+            style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _sectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(label, style: AppTextStyles.caption),
+    );
+  }
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white12, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.white38, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildBookingReminder() {
+    final booking = AppData.recentBookings.first;
+    final formattedDate = DateFormat('EEEE, dd MMM yyyy').format(booking.date);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF0F3D2E), Color(0xFF1A3A20)]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accent.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_outlined, color: AppColors.accent, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("JADWAL TERDEKAT", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 10)),
+                Text("${booking.field.name} - ${booking.subField}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text("$formattedDate, ${booking.startTime} - ${booking.endTime}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildFieldList() {
+    final displayFields = isNearMeActive 
+        ? AppData.fields.where((f) => f.location.toLowerCase().contains("bojongsoang")).toList()
+        : AppData.fields.where((f) => f.location.toLowerCase().contains("bandung")).toList();
+
+    if (displayFields.isEmpty) {
+      return _buildEmptyState(
+        isNearMeActive ? Icons.near_me_disabled_rounded : Icons.location_off_rounded, 
+        isNearMeActive ? "Tidak ada lapangan di Bojongsoang" : "Tidak ada lapangan di Bandung"
+      );
+    }
+
+    return SizedBox(
+      height: 185,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(left: 20),
+        itemCount: displayFields.length,
+        itemBuilder: (context, index) => _buildFieldCard(displayFields[index]),
+      ),
+    );
+  }
+
+  Widget _buildFieldCard(Field field) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: FeatureBallAnimation(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookingScreen(field: field),
+          ),
+        ),
+        child: _FieldCard(
+          field: field,
+          onTap: () {}, // Handled by FeatureBallAnimation
+        ),
+      ),
+    );
+  }
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -171,181 +447,17 @@ class _HomeContentState extends State<HomeContent> {
               ),
             ],
           ),
-          // Icon Notifikasi & Lokasi
           Row(
             children: [
               _headerIcon(Icons.notifications_none_rounded),
               const SizedBox(width: 10),
-              _headerIcon(Icons.my_location_rounded), // Icon lokasi pengguna
+              _headerIcon(Icons.my_location_rounded), 
             ],
           )
         ],
       ),
     );
   }
-
-  // EMPTY STATE: Jika tidak ada jadwal
-  Widget _buildEmptyJadwal() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(30),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.event_busy_rounded, color: Colors.white24, size: 50),
-          const SizedBox(height: 12),
-          const Text("Belum ada jadwal booking", 
-            style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  // REMINDER: Jika sudah memesan lapangan
-  Widget _buildBookingReminder(Booking booking) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.darkGreen, Color(0xFF1A3A20)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkGreen.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.timer_outlined, color: AppColors.accent, size: 40),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("PENGINGAT BOOKING", style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 4),
-                Text(booking.field.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("${booking.subField} • ${booking.startTime}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: AppTextStyles.caption),
-          GestureDetector(
-            onTap: onTap,
-            child: const Text('Lihat semua', style: TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAvailableFields() {
-    return SizedBox(
-      height: 170,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: AppData.fields.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (_, i) => _FieldCard(
-          field: AppData.fields[i],
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BookingScreen(field: AppData.fields[i]),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyHistory() {
-    return Container(
-      padding: const EdgeInsets.all(30),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.history_rounded, color: Colors.white10, size: 40),
-          const SizedBox(height: 12),
-          const Text("Belum ada riwayat pesanan", 
-            style: TextStyle(color: Colors.white24, fontSize: 13)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentHistoryList(List<Booking> history) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: history.length,
-      itemBuilder: (context, index) {
-        final booking = history[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.sports_soccer, color: AppColors.accent, size: 20),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(booking.field.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text("${booking.subField} • ${booking.startTime}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _headerIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -354,19 +466,16 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 }
-
 class _NavItem {
   final IconData icon;
   final String label;
   const _NavItem({required this.icon, required this.label});
 }
-
 class _FieldCard extends StatelessWidget {
   final Field field;
   final VoidCallback onTap;
 
   const _FieldCard({required this.field, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -436,7 +545,6 @@ class _FieldCard extends StatelessWidget {
       ),
     );
   }
-
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),

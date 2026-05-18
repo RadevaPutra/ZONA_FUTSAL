@@ -30,9 +30,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1A1F2E), // Warna gelap di pojok kiri atas
-              Color(0xFF0F3D2E), // Hijau gelap di tengah
-              Color(0xFF1A3A20), // Hijau sedikit terang di pojok kanan bawah
+              Color(0xFF1A1F2E), 
+              Color(0xFF0F3D2E), 
+              Color(0xFF1A3A20), 
             ],
             stops: [0.0, 0.5, 1.0],
           ),
@@ -44,7 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                // Tombol Back (Opsional tapi berguna)
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),

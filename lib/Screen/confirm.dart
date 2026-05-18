@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import 'home.dart';
@@ -25,7 +27,54 @@ class _ConfirmScreenState extends State<ConfirmScreen> with TickerProviderStateM
       duration: const Duration(milliseconds: 800),
     );
     _scaleAnim = CurvedAnimation(parent: _scaleCtrl, curve: Curves.elasticOut);
-    _scaleCtrl.forward();
+    _scaleCtrl.forward().then((_) {
+      if (mounted) {
+        _showSuccessPopup();
+      }
+    });
+  }
+
+  void _showSuccessPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 80),
+            const SizedBox(height: 20),
+            const Text(
+              "Pembayaran Sukses!",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F3D2E)),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "E-Ticket Anda telah diterbitkan. Silakan kirim bukti pembayaran ke WhatsApp Admin.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: const Color(0xFF0F3D2E),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                ),
+                child: const Text("Lihat E-Ticket", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -43,14 +92,53 @@ Tanggal      : ${widget.booking.startTime} - ${widget.booking.endTime}
 Total Bayar  : Rp ${widget.booking.totalPrice}
 Status       : LUNAS ✅
 ------------------------------------------
-Simpan tiket ini dan tunjukkan QR Code kepada petugas di lokasi.
-Terima kasih telah berolahraga!
+Simpan tiket ini dan Terima kasih telah berolahraga!
     ''';
 
     Share.share(
       message,
       subject: 'Tiket Booking Futsal - ${widget.booking.field.name}',
     );
+  }
+
+  Future<void> _sendToWhatsAppAdmin() async {
+    const String adminPhone = "6281933053869"; 
+    
+    final formattedPrice = widget.booking.totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+    final String message = '''
+Halo, saya ingin memberikan bukti pembayaran booking berikut:
+
+ *E-TICKET FUTSAL* 
+------------------------------------------
+Kode Booking : ${widget.booking.bookingCode}
+Lapangan     : ${widget.booking.field.name} (${widget.booking.subField})
+Tanggal      : ${widget.booking.startTime} - ${widget.booking.endTime}
+Total Bayar  : Rp $formattedPrice
+Status       : LUNAS 
+------------------------------------------
+Simpan tiket ini dan Terima kasih telah berolahraga!
+    ''';
+
+    final Uri whatsappUri = Uri.parse(
+      "https://wa.me/$adminPhone?text=${Uri.encodeComponent(message)}",
+    );
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Gagal membuka WhatsApp. Pastikan aplikasi terpasang."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -69,8 +157,10 @@ Terima kasih telah berolahraga!
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 35),
+              ScaleTransition(
+                scale: _scaleAnim,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 35),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -85,31 +175,24 @@ Terima kasih telah berolahraga!
                 ),
                 child: Column(
                   children: [
-                    // Nama Lapangan Utama & Sub-lapangan
                     _ticketRow(
                       label: 'Tempat & Lapangan',
                       value: '${widget.booking.field.name} (${widget.booking.subField})',
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Rentang Waktu
                     _ticketRow(
                       label: 'Waktu Sewa',
                       value: '${widget.booking.startTime} - ${widget.booking.endTime}',
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Tanggal Main
                     _ticketRow(
                       label: 'Tanggal',
-                      value: 'Senin, 03 Apr 2026', // Sesuai data dummy
+                      value: DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date),
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                     ),
-
-                    // --- BAGIAN BARU: INFORMASI VIRTUAL ACCOUNT ---
                     const Text(
                       "Transfer Ke Virtual Account",
                       style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -118,7 +201,7 @@ Terima kasih telah berolahraga!
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.bg, // Gunakan warna background aplikasi
+                        color: AppColors.bg,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.border),
                       ),
@@ -129,7 +212,7 @@ Terima kasih telah berolahraga!
                               size: 18, color: AppColors.darkGreen),
                           const SizedBox(width: 10),
                           const Text(
-                            "76707821223", // Nomor VA Anda
+                            "76707821223",
                             style: TextStyle(
                               fontWeight: FontWeight.w900, 
                               fontSize: 18, 
@@ -150,8 +233,6 @@ Terima kasih telah berolahraga!
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // ----------------------------------------------
-
                     QrImageView(
                       data: widget.booking.bookingCode,
                       version: QrVersions.auto,
@@ -172,7 +253,7 @@ Terima kasih telah berolahraga!
                   ],
                 ),
               ),
-
+              ),
               const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -187,6 +268,24 @@ Terima kasih telah berolahraga!
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: const Color(0xFF0F3D2E),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _sendToWhatsAppAdmin,
+                        icon: const Icon(Icons.message_rounded, size: 20),
+                        label: const Text("KONFIRMASI VIA WHATSAPP"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),

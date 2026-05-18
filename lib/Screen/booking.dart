@@ -15,7 +15,6 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   int _selectedDateIndex = 0;
   String? _selectedTime;
-  int _selectedDuration = 2;
   String _selectedSubField = 'Lapangan A';
 
   static const List<_DateItem> _dates = [
@@ -27,9 +26,7 @@ class _BookingScreenState extends State<BookingScreen> {
     _DateItem(day: 'Sab', num: '08'),
   ];
 
-  int get _totalPrice => widget.field.pricePerHour * _selectedDuration;
-
-  // Fungsi generate kode booking unik
+  int get _totalPrice => widget.field.pricePerHour * 2;
   String _generateBookingCode() {
     final now = DateTime.now();
     return 'FTL-${now.millisecondsSinceEpoch.toString().substring(7)}';
@@ -42,11 +39,15 @@ class _BookingScreenState extends State<BookingScreen> {
         );
   }
 
+  String get _startTime {
+    if (_selectedTime == null) return '--:--';
+    return _selectedTime!.split(' - ')[0];
+  }
+
   String get _endTime {
     if (_selectedTime == null) return '--:--';
-    final parts = _selectedTime!.split(':');
-    final hour = int.parse(parts[0]) + _selectedDuration;
-    return '${hour.toString().padLeft(2, '0')}:00';
+    final parts = _selectedTime!.split(' - ');
+    return parts.length > 1 ? parts[1] : '--:--';
   }
 
   @override
@@ -104,7 +105,6 @@ class _BookingScreenState extends State<BookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // BAGIAN BARU: Pilih Sub-Lapangan (A, B, C)
                   _sectionLabel("Pilih Lapangan"),
                   const SizedBox(height: 12),
                   Row(
@@ -136,7 +136,6 @@ class _BookingScreenState extends State<BookingScreen> {
                     }).toList(),
                   ),
                   const SizedBox(height: 22),
-
                   _sectionLabel('Pilih Tanggal'),
                   const SizedBox(height: 10),
                   _buildDateList(),
@@ -144,10 +143,6 @@ class _BookingScreenState extends State<BookingScreen> {
                   _sectionLabel('Pilih Waktu'),
                   const SizedBox(height: 10),
                   _buildTimeGrid(),
-                  const SizedBox(height: 22),
-                  _sectionLabel('Durasi Sewa'),
-                  const SizedBox(height: 10),
-                  _buildDurationPicker(),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -158,8 +153,6 @@ class _BookingScreenState extends State<BookingScreen> {
       bottomNavigationBar: _buildBottomSummary(),
     );
   }
-
-  // --- WIDGET HELPER ---
   Widget _buildDateList() {
     return SizedBox(
       height: 70,
@@ -198,7 +191,7 @@ class _BookingScreenState extends State<BookingScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, childAspectRatio: 2.6, crossAxisSpacing: 8, mainAxisSpacing: 8),
+        crossAxisCount: 2, childAspectRatio: 2.8, crossAxisSpacing: 12, mainAxisSpacing: 12),
       itemCount: AppData.timeSlots.length,
       itemBuilder: (_, i) {
         final slot = AppData.timeSlots[i];
@@ -213,7 +206,7 @@ class _BookingScreenState extends State<BookingScreen> {
               border: Border.all(color: isSelected ? AppColors.darkGreen : AppColors.border),
             ),
             child: Center(
-              child: Text(slot, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, 
+              child: Text(slot, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, 
                 color: isTaken ? Colors.grey : isSelected ? AppColors.accent : AppColors.textPrimary)),
             ),
           ),
@@ -222,29 +215,6 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildDurationPicker() {
-    return Row(
-      children: [1, 2, 3].map((dur) {
-        final isSelected = _selectedDuration == dur;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedDuration = dur),
-            child: Container(
-              margin: EdgeInsets.only(right: dur < 3 ? 8 : 0),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.accent : AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
-              ),
-              child: Text('$dur Jam', textAlign: TextAlign.center, 
-                style: TextStyle(fontWeight: FontWeight.w700, color: isSelected ? AppColors.darkGreen : AppColors.textPrimary)),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
 
   Widget _buildBottomSummary() {
     if (_selectedTime == null) return const SizedBox.shrink();
@@ -279,9 +249,9 @@ class _BookingScreenState extends State<BookingScreen> {
             field: widget.field,
             subField: _selectedSubField,
             date: DateTime.now(),
-            startTime: _selectedTime!,
+            startTime: _startTime,
             endTime: _endTime,
-            durationHours: _selectedDuration,
+            durationHours: 2,
             totalPrice: _totalPrice,
           );
           AppData.recentBookings.insert(0, booking);
@@ -299,7 +269,6 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _sectionLabel(String text) => Text(text.toUpperCase(), style: AppTextStyles.caption);
-
   Widget _summaryRow(String label, String value, {bool isTotal = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),

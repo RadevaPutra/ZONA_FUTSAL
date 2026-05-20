@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -52,7 +51,7 @@ class _ConfirmScreenState extends State<ConfirmScreen> with TickerProviderStateM
             ),
             const SizedBox(height: 8),
             const Text(
-              "E-Ticket Anda telah diterbitkan. Silakan kirim bukti pembayaran ke WhatsApp Admin.",
+              "E-Ticket Anda telah diterbitkan. Silakan kirim detail booking ke WhatsApp Admin.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
@@ -82,52 +81,32 @@ class _ConfirmScreenState extends State<ConfirmScreen> with TickerProviderStateM
     _scaleCtrl.dispose();
     super.dispose();
   }
-  void _shareTicket() {
+  Future<void> _sendTicketToWhatsApp() async {
+    const String nomorAdmin = "6281933053869"; 
+    final formatter = NumberFormat('#,###', 'id_ID');
+    final String formattedPrice = formatter.format(widget.booking.totalPrice);
+
     final String message = '''
 ⚽ *E-TICKET FUTSALKU* ⚽
 ------------------------------------------
 Kode Booking : ${widget.booking.bookingCode}
 Lapangan     : ${widget.booking.field.name} (${widget.booking.subField})
-Tanggal      : ${widget.booking.startTime} - ${widget.booking.endTime}
-Total Bayar  : Rp ${widget.booking.totalPrice}
-Status       : LUNAS ✅
-------------------------------------------
-Simpan tiket ini dan Terima kasih telah berolahraga!
-    ''';
-
-    Share.share(
-      message,
-      subject: 'Tiket Booking Futsal - ${widget.booking.field.name}',
-    );
-  }
-
-  Future<void> _sendToWhatsAppAdmin() async {
-    const String adminPhone = "6281933053869"; 
-    
-    final formattedPrice = widget.booking.totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
-    final String message = '''
-Halo, saya ingin memberikan bukti pembayaran booking berikut:
-
- *E-TICKET FUTSAL* 
-------------------------------------------
-Kode Booking : ${widget.booking.bookingCode}
-Lapangan     : ${widget.booking.field.name} (${widget.booking.subField})
-Tanggal      : ${widget.booking.startTime} - ${widget.booking.endTime}
+Tanggal      : ${DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date)}
+Waktu        : ${widget.booking.startTime} - ${widget.booking.endTime}
 Total Bayar  : Rp $formattedPrice
 Status       : LUNAS 
 ------------------------------------------
-Simpan tiket ini dan Terima kasih telah berolahraga!
-    ''';
+Simpan tiket ini dan Terima kasih telah berolahraga!''';
 
     final Uri whatsappUri = Uri.parse(
-      "https://wa.me/$adminPhone?text=${Uri.encodeComponent(message)}",
+      "https://wa.me/$nomorAdmin?text=${Uri.encodeComponent(message)}",
     );
 
     try {
       if (await canLaunchUrl(whatsappUri)) {
         await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
       } else {
-        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
+        throw "Tidak dapat membuka WhatsApp";
       }
     } catch (e) {
       if (mounted) {
@@ -161,131 +140,113 @@ Simpan tiket ini dan Terima kasih telah berolahraga!
                 scale: _scaleAnim,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 35),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _ticketRow(
-                      label: 'Tempat & Lapangan',
-                      value: '${widget.booking.field.name} (${widget.booking.subField})',
-                    ),
-                    const SizedBox(height: 12),
-                    _ticketRow(
-                      label: 'Waktu Sewa',
-                      value: '${widget.booking.startTime} - ${widget.booking.endTime}',
-                    ),
-                    const SizedBox(height: 12),
-                    _ticketRow(
-                      label: 'Tanggal',
-                      value: DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                    ),
-                    const Text(
-                      "Transfer Ke Virtual Account",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.bg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.account_balance_wallet_rounded, 
-                              size: 18, color: AppColors.darkGreen),
-                          const SizedBox(width: 10),
-                          const Text(
-                            "76707821223",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900, 
-                              fontSize: 18, 
-                              letterSpacing: 1.5,
-                              color: AppColors.textPrimary,
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _ticketRow(
+                        label: 'Tempat & Lapangan',
+                        value: '${widget.booking.field.name} (${widget.booking.subField})',
+                      ),
+                      const SizedBox(height: 12),
+                      _ticketRow(
+                        label: 'Waktu Sewa',
+                        value: '${widget.booking.startTime} - ${widget.booking.endTime}',
+                      ),
+                      const SizedBox(height: 12),
+                      _ticketRow(
+                        label: 'Tanggal',
+                        value: DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+                      ),
+                      const Text(
+                        "Transfer Ke Virtual Account",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.account_balance_wallet_rounded, 
+                                size: 18, color: AppColors.darkGreen),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "76707821223",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w900, 
+                                  fontSize: 18, 
+                                  letterSpacing: 1.5,
+                                  color: AppColors.textPrimary),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Nomor VA disalin!")),
-                              );
-                            },
-                            child: const Icon(Icons.copy_rounded, size: 16, color: Colors.grey),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Nomor VA disalin!")),
+                                );
+                              },
+                              child: const Icon(Icons.copy_rounded, size: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    QrImageView(
-                      data: widget.booking.bookingCode,
-                      version: QrVersions.auto,
-                      size: 160.0,
-                      gapless: false,
-                      foregroundColor: const Color(0xFF0F3D2E),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.booking.bookingCode,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 20,
-                        letterSpacing: 4,
-                        color: Color(0xFF0F3D2E),
+                      const SizedBox(height: 20),
+                      QrImageView(
+                        data: widget.booking.bookingCode,
+                        version: QrVersions.auto,
+                        size: 160.0,
+                        gapless: false,
+                        foregroundColor: const Color(0xFF0F3D2E),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.booking.bookingCode,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                          letterSpacing: 4,
+                          color: Color(0xFF0F3D2E),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ),
               const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
+                    // SATU TOMBOL UTAMA (MINIMALIS)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _shareTicket,
+                        onPressed: _sendTicketToWhatsApp,
                         icon: const Icon(Icons.share_rounded, size: 20),
-                        label: const Text("BAGIKAN TIKET"),
+                        label: const Text("BAGIKAN TIKET KE WHATSAPP"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: const Color(0xFF0F3D2E),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _sendToWhatsAppAdmin,
-                        icon: const Icon(Icons.message_rounded, size: 20),
-                        label: const Text("KONFIRMASI VIA WHATSAPP"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF25D366),
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -323,10 +284,7 @@ Simpan tiket ini dan Terima kasih telah berolahraga!
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
         Text(
           value,
           style: const TextStyle(

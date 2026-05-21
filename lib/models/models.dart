@@ -37,6 +37,8 @@ class Booking {
   final String endTime;
   final int durationHours;
   final int totalPrice;
+  final int discountAmount;
+  final String? voucherCode;
   final String status;
 
   Booking({
@@ -48,6 +50,8 @@ class Booking {
     required this.endTime,
     required this.durationHours,
     required this.totalPrice,
+    this.discountAmount = 0,
+    this.voucherCode,
     this.status = 'Aktif',
   });
 }
@@ -131,4 +135,4 @@ class AppData {
   static List<String> bookedSlots = ['10:00 - 12:00', '16:00 - 18:00'];
 
   static List<Booking> recentBookings = [];
-}
+}

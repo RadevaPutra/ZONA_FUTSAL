@@ -95,8 +95,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         _summaryRow("Lapangan", widget.booking.field.name),
                         _summaryRow("Tipe", widget.booking.subField),
                         _summaryRow("Jadwal", "${widget.booking.startTime} - ${widget.booking.endTime}"),
+                        _summaryRow("Durasi", "${widget.booking.durationHours} Jam"),
+                        if (widget.booking.discountAmount > 0) ...[
+                          const Divider(color: Colors.white24, height: 16),
+                          _summaryRow(
+                            "Subtotal",
+                            "Rp ${(widget.booking.totalPrice + widget.booking.discountAmount).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}",
+                          ),
+                          _summaryRow(
+                            "Voucher ${widget.booking.voucherCode ?? ''}",
+                            "- Rp ${widget.booking.discountAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}",
+                            isDiscount: true,
+                          ),
+                        ],
                         const Divider(color: Colors.white24, height: 24),
-                        _summaryRow("Total Bayar", "Rp ${widget.booking.totalPrice}", isTotal: true),
+                        _summaryRow("Total Bayar", "Rp ${widget.booking.totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}", isTotal: true),
                       ],
                     ),
                   ),
@@ -376,7 +389,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     ),
   );
 
-  Widget _summaryRow(String label, String value, {bool isTotal = false}) {
+  Widget _summaryRow(String label, String value, {bool isTotal = false, bool isDiscount = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -393,7 +406,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Text(
             value, 
             style: TextStyle(
-              color: isTotal ? AppColors.accent : Colors.white, 
+              color: isDiscount ? const Color(0xFF4ADE80) : isTotal ? AppColors.accent : Colors.white, 
               fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold,
               fontSize: isTotal ? 18 : 14,
             )

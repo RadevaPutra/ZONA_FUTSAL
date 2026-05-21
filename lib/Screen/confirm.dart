@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -84,16 +85,26 @@ class _ConfirmScreenState extends State<ConfirmScreen> with TickerProviderStateM
     const String nomorAdmin = "6281933053869"; 
     final formatter = NumberFormat('#,###', 'id_ID');
     final String formattedPrice = formatter.format(widget.booking.totalPrice);
+    final bool hasDiscount = widget.booking.discountAmount > 0;
+    final String formattedDiscount = formatter.format(widget.booking.discountAmount);
+    final String formattedSubtotal = formatter.format(
+      widget.booking.totalPrice + widget.booking.discountAmount,
+    );
 
     final String message = '''
- *E-TICKET FUTSALKU* 
+⚽ *E-TICKET FUTSALKU* ⚽
 ------------------------------------------
 Kode Booking : ${widget.booking.bookingCode}
 Lapangan     : ${widget.booking.field.name} (${widget.booking.subField})
 Tanggal      : ${DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date)}
 Waktu        : ${widget.booking.startTime} - ${widget.booking.endTime}
+Durasi       : ${widget.booking.durationHours} Jam${hasDiscount ? '''
+------------------------------------------
+Subtotal     : Rp $formattedSubtotal
+Voucher      : ${widget.booking.voucherCode ?? '-'} (-Rp $formattedDiscount)''' : ''}
+------------------------------------------
 Total Bayar  : Rp $formattedPrice
-Status       : LUNAS 
+Status       : LUNAS ✅
 ------------------------------------------
 Simpan tiket ini dan Terima kasih telah berolahraga!''';
 
@@ -171,50 +182,60 @@ Simpan tiket ini dan Terima kasih telah berolahraga!''';
                         padding: EdgeInsets.symmetric(vertical: 16),
                         child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                       ),
-                      const SizedBox(height: 10),
-                      // LUNAS 
+                      const Text(
+                        "Transfer Ke Virtual Account",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: AppColors.accent, width: 2),
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 28),
-                            SizedBox(width: 8),
-                            Text(
-                              "LUNAS",
+                            const Icon(Icons.account_balance_wallet_rounded, 
+                                size: 18, color: AppColors.darkGreen),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "76707821223",
                               style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 18,
-                                letterSpacing: 1.5,
-                                color: AppColors.darkGreen,
-                              ),
+                                  fontWeight: FontWeight.w900, 
+                                  fontSize: 18, 
+                                  letterSpacing: 1.5,
+                                  color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Nomor VA disalin!")),
+                                );
+                              },
+                              child: const Icon(Icons.copy_rounded, size: 16, color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "KODE BOOKING",
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
+                      const SizedBox(height: 20),
+                      QrImageView(
+                        data: widget.booking.bookingCode,
+                        version: QrVersions.auto,
+                        size: 160.0,
+                        gapless: false,
+                        foregroundColor: const Color(0xFF0F3D2E),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 10),
                       Text(
                         widget.booking.bookingCode,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
                           letterSpacing: 4,
-                          color: AppColors.darkGreen,
+                          color: Color(0xFF0F3D2E),
                         ),
                       ),
                     ],

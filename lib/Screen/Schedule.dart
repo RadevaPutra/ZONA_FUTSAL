@@ -13,11 +13,13 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   bool isNearMeActive = false;
+  String searchQuery = '';
   List<Field> filteredFields = AppData.fields.where((f) => f.location.toLowerCase().contains("bandung")).toList();
 
-  void _toggleNearMe() {
+  void _filterFields() {
     setState(() {
-      isNearMeActive = !isNearMeActive;
+      Iterable<Field> result = AppData.fields;
+
       if (isNearMeActive) {
         final nearMeNames = [
           'Telkom University Futsal',
@@ -25,11 +27,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           'Bojongsoang Sport Center',
           'Champion Arena Buah Batu'
         ];
-        filteredFields = AppData.fields.where((f) => nearMeNames.contains(f.name)).toList();
+        result = result.where((f) => nearMeNames.contains(f.name));
       } else {
-        filteredFields = AppData.fields.where((f) => f.location.toLowerCase().contains("bandung")).toList();
+        result = result.where((f) => f.location.toLowerCase().contains("bandung"));
       }
+
+      if (searchQuery.isNotEmpty) {
+        result = result.where((f) => f.name.toLowerCase().contains(searchQuery.toLowerCase()));
+      }
+
+      filteredFields = result.toList();
     });
+  }
+
+  void _toggleNearMe() {
+    isNearMeActive = !isNearMeActive;
+    _filterFields();
   }
 
   @override
@@ -97,6 +110,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Widget _buildSearchBar() {
     return TextField(
+      onChanged: (value) {
+        searchQuery = value;
+        _filterFields();
+      },
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: "Cari nama lapangan...",

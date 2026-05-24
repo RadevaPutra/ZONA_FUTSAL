@@ -1,8 +1,87 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart'; // Pastikan package ini sudah didaftarkan di pubspec.yaml
 import '../theme/app_theme.dart';
 
-class PusatBantuanPage extends StatelessWidget {
+class PusatBantuanPage extends StatefulWidget {
   const PusatBantuanPage({super.key});
+
+  @override
+  State<PusatBantuanPage> createState() => _PusatBantuanPageState();
+}
+
+class _PusatBantuanPageState extends State<PusatBantuanPage> {
+  // Data Dummy Informasi Pertanyaan & Jawaban FAQ
+  final List<Map<String, String>> _allFaq = [
+    {
+      'pertanyaan': 'Bagaimana cara membatalkan pesanan?',
+      'jawaban': 'Anda dapat membatalkan pesanan langsung melalui menu Riwayat Transaksi maksimal 2 jam sebelum jadwal tanding dimulai. Dana Anda akan otomatis dikembalikan dalam bentuk saldo aplikasi.',
+    },
+    {
+      'pertanyaan': 'Mengapa status pembayaran saya belum berubah?',
+      'jawaban': 'Proses verifikasi pembayaran otomatis biasanya memakan waktu 1-5 menit. Jika dalam 10 menit status belum berubah, mohon hubungi tim Live Chat kami dengan melampirkan bukti transfer Anda.',
+    },
+    {
+      'pertanyaan': 'Berapa lama batas waktu pembayaran?',
+      'jawaban': 'Batas waktu pembayaran untuk setiap reservasi lapangan futsal adalah 15 menit setelah pesanan dibuat. Jika melewati batas waktu tersebut, pesanan Anda akan otomatis dibatalkan oleh sistem.',
+    },
+  ];
+
+  // Variabel penampung hasil filter pencarian
+  List<Map<String, String>> _filteredFaq = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Menampilkan seluruh daftar FAQ di awal halaman dibuka
+    _filteredFaq = _allFaq;
+  }
+
+  // Fungsi pencarian untuk menyaring FAQ secara otomatis sewaktu user mengetik
+  void _filterSearch(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFaq = _allFaq;
+      } else {
+        _filteredFaq = _allFaq
+            .where((faq) => faq['pertanyaan']!
+            .toLowerCase()
+            .contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
+  // Fungsi langsung untuk memicu pembukaan aplikasi Gmail di HP
+  Future<void> _launchEmail({String subject = ''}) async {
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: 'futsal@gmail.com', // Alamat email tujuan utama
+      queryParameters: {
+        'subject': subject.isEmpty ? 'Tanya FutsalKu' : subject,
+        'body': 'Halo Tim Dukungan FutsalKu,\n\nSaya ingin bertanya mengenai...'
+      },
+    );
+
+    try {
+      // Menggunakan mode externalApplication agar langsung dipaksa membuka aplikasi Gmail bawaan
+      await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal membuka aplikasi email. Pastikan HP Anda memiliki aplikasi Gmail aktif.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +90,7 @@ class PusatBantuanPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // HEADER
+            // HEADER UTAMA
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: Row(
@@ -39,17 +118,23 @@ class PusatBantuanPage extends StatelessWidget {
                     const Text("Ada yang bisa\nkami bantu?", style: TextStyle(fontSize: 32, height: 1.1, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 18),
 
-                    // SEARCH
+                    // INPUT PENCARIAN (AKTIF)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                      child: const TextField(
-                        decoration: InputDecoration(icon: Icon(Icons.search), hintText: "Cari masalah atau panduan...", border: InputBorder.none),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _filterSearch,
+                        decoration: const InputDecoration(
+                          icon: Icon(Icons.search),
+                          hintText: "Cari masalah atau panduan...",
+                          border: InputBorder.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 22),
 
-                    // CARD PANDUAN
+                    // KARTU PANDUAN PEMULA
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
@@ -75,15 +160,6 @@ class PusatBantuanPage extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(child: _smallCard(Icons.payments, "Pembayaran", Colors.greenAccent)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _smallCard(Icons.calendar_month, "Reservasi", Colors.lightBlueAccent)),
-                      ],
-                    ),
-
                     const SizedBox(height: 28),
                     Row(
                       children: [
@@ -93,13 +169,25 @@ class PusatBantuanPage extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 18),
-                    _faq("Bagaimana cara membatalkan pesanan?"),
-                    _faq("Mengapa status pembayaran saya belum berubah?"),
-                    _faq("Berapa lama batas waktu pembayaran?"),
+
+                    // DAFTAR FAQ ACCORDION (BISA DITEKAN & BUKA-TUTUP)
+                    _filteredFaq.isEmpty
+                        ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text(
+                          "Pertanyaan tidak ditemukan.",
+                          style: TextStyle(color: Colors.black45, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    )
+                        : Column(
+                      children: _filteredFaq.map((faq) => _buildFaqItem(faq['pertanyaan']!, faq['jawaban']!)).toList(),
+                    ),
 
                     const SizedBox(height: 24),
 
-                    // SUPPORT CARD
+                    // KARTU DUKUNGAN (HANYA TOMBOL KIRIM EMAIL)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
@@ -111,27 +199,21 @@ class PusatBantuanPage extends StatelessWidget {
                           const SizedBox(height: 10),
                           Text("Tim dukungan kami siap membantu Anda 24/7.", style: TextStyle(color: Colors.black.withOpacity(.55))),
                           const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.darkGreen,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                                padding: const EdgeInsets.symmetric(vertical: 15),
-                              ),
-                              onPressed: () {},
-                              icon: const Icon(Icons.chat, color: Colors.white),
-                              label: const Text("Hubungi Live Chat", style: TextStyle(color: Colors.white)),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+
+                          // SEKARANG LANGSUNG TOMBOL KIRIM EMAIL (LIVE CHAT SUDAH DIHAPUS)
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                              onPressed: () {},
-                              icon: const Icon(Icons.email),
-                              label: const Text("Kirim Email"),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                side: const BorderSide(color: AppColors.darkGreen, width: 1.5),
+                              ),
+                              onPressed: () {
+                                _launchEmail(subject: '[TIKET] Pertanyaan Aplikasi FutsalKu');
+                              },
+                              icon: const Icon(Icons.email, color: AppColors.darkGreen),
+                              label: const Text("Kirim Email", style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
@@ -148,30 +230,30 @@ class PusatBantuanPage extends StatelessWidget {
     );
   }
 
-  Widget _smallCard(IconData icon, String title, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          CircleAvatar(backgroundColor: color.withOpacity(.2), child: Icon(icon)),
-          const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold))
-        ],
-      ),
-    );
-  }
-
-  Widget _faq(String text) {
+  // Fungsi Pembuat Komponen Dropdown FAQ Menggunakan ExpansionTile Tanpa Garis Pembatas
+  Widget _buildFaqItem(String title, String content) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        children: [
-          Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w500))),
-          const Icon(Icons.expand_more),
-        ],
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: AppColors.darkGreen,
+          collapsedIconColor: Colors.black54,
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Colors.black),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              child: Text(
+                content,
+                style: TextStyle(color: Colors.black.withOpacity(0.65), height: 1.3),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

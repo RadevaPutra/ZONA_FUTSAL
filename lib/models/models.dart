@@ -23,13 +23,14 @@ class Field {
     this.isAvailable = true,
     this.location = 'Lokasi Terdekat',
     this.operationalHours = '08:00 - 22:00',
-    this.latitude = -6.9175, // Default Bandung Lat
-    this.longitude = 107.6191, // Default Bandung Lon
+    this.latitude = -6.9175,
+    this.longitude = 107.6191,
   });
 }
 
 class Booking {
   final String bookingCode;
+  final String username; //
   final Field field;
   final String subField;
   final DateTime date;
@@ -43,6 +44,7 @@ class Booking {
 
   Booking({
     required this.bookingCode,
+    required this.username,
     required this.field,
     required this.subField,
     required this.date,
@@ -57,6 +59,9 @@ class Booking {
 }
 
 class AppData {
+  // 👈 SIMULASI LOGIN: Ganti 'Anom' jadi 'Ayu' di sini untuk ngetes perpindahan akun!
+  static String currentUser = 'Anom';
+
   static List<Field> fields = [
     Field(
       id: '1',
@@ -128,11 +133,16 @@ class AppData {
   ];
 
   static List<String> timeSlots = [
-    '08:00 - 10:00', '10:00 - 12:00', '12:00 - 14:00', 
-    '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'
+    '08:00 - 10:00',
+    '10:00 - 12:00',
+    '12:00 - 14:00',
+    '14:00 - 16:00',
+    '16:00 - 18:00',
+    '18:00 - 20:00',
+    '20:00 - 22:00'
   ];
 
-  static List<String> bookedSlots = ['10:00 - 12:00', '16:00 - 18:00'];
-
+  static List<String> bookedSlots = [];
+  static Map<String, List<String>> bookedSlotsByDate = {};
   static List<Booking> recentBookings = [];
-}
+

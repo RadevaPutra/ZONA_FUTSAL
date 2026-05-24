@@ -4,6 +4,10 @@ import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import 'home.dart';
 import 'register.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/models.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -65,27 +69,118 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _doLogin() async {
-    if (_emailController.text.isEmpty || _passController.text.isEmpty) {
+
+    if (_emailController.text.isEmpty ||
+        _passController.text.isEmpty) {
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan kata sandi tidak boleh kosong')),
+        const SnackBar(
+          content: Text(
+            'Email dan password wajib diisi',
+          ),
+        ),
       );
+
       return;
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
 
-    if (!mounted) return;
+    try {
+
+      final response = await http.post(
+        Uri.parse(
+          'http://10.0.2.2:3000/api/auth/login',
+        ),
+
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: jsonEncode({
+          'email': _emailController.text,
+          'password': _passController.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+
+        final prefs =
+        await SharedPreferences.getInstance();
+
+        await prefs.setString(
+          'nama',
+          data['user']['nama'],
+        );
+
+        await prefs.setString(
+          'email',
+          data['user']['email'],
+        );
+
+        await prefs.setString(
+          'nomor_telepon',
+          data['user']['nomor_telepon'],
+        );
+
+        await prefs.setString(
+          'foto',
+          data['user']['foto_profile'] ?? '',
+        );
+
+        print('FOTO LOGIN = ${data['user']['foto_profile']}');
+
+// UPDATE USER AKTIF
+        AppData.currentUser = data['user']['nama'];
+
+        if (!mounted) return;
+
+        await prefs.setInt(
+          'user_id',
+          data['user']['id'],
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
+        );
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
+        );
+
+      } else {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data.toString()),
+          ),
+        );
+
+      }
+
+    } catch (e) {
+
+      print(e);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+        ),
+      );
+
+    }
+
     setState(() => _isLoading = false);
-
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
   }
 
   @override

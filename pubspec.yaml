@@ -2,6 +2,7 @@ name: zona_futsal
 description: "A new Flutter project."
 publish_to: 'none'
 
+
 version: 1.0.0+1
 
 environment:
@@ -11,7 +12,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+
+
+
+  http: ^1.2.1
+  shared_preferences: ^2.2.2
   cupertino_icons: ^1.0.8
+  image_picker: ^1.1.2
   
   # 1. Tambahkan intl untuk memformat tanggal dan mata uang Rupiah
   intl: ^0.19.0
@@ -19,7 +26,6 @@ dependencies:
   # 2. (Opsional) Tambahkan share_plus jika ingin tombol "Bagikan Tiket" berfungsi
   share_plus: ^7.2.2
   qr_flutter: ^4.1.0
-  http: ^1.6.0
   geolocator: ^14.0.2
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0

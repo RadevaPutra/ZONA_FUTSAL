@@ -24,17 +24,26 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavItem(icon: Icons.person_rounded, label: 'Profil'),
   ];
 
-  final List<Widget> _pages = [
-    const HomeContent(),
-    const ScheduleScreen(),
-    const ProfileScreen(),
-  ];
+  // LOGIKA FIX PERTAMA: Jangan gunakan variabel array statis untuk halaman.
+  // Gunakan fungsi switch-case saat build agar widget langsung mendeteksi perubahan user secara real-time saat tab ditekan.
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return const HomeContent();
+      case 1:
+        return const ScheduleScreen();
+      case 2:
+        return const ProfileScreen();
+      default:
+        return const HomeContent();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E0D),
-      body: _pages[_selectedNav],
+      body: _buildPage(_selectedNav), // Memanggil fungsi dinamis
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -110,7 +119,6 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  bool get hasActiveBooking => AppData.recentBookings.isNotEmpty; 
   bool isNearMeActive = false;
   String _activeHistoryFilter = 'Semua';
   final List<String> _historyFilters = ['Semua', 'Hari ini', '3 Hari', '7 Hari', 'Bulan lalu'];
@@ -140,11 +148,14 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
     super.dispose();
   }
 
+  // LOGIKA FIX KEDUA: Filter riwayat khusus milik user aktif saat ini
   List<Booking> get _filteredHistory {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    return AppData.recentBookings.where((booking) {
+    final userBookings = AppData.recentBookings.where((b) => b.username == AppData.currentUser).toList();
+
+    return userBookings.where((booking) {
       if (_activeHistoryFilter == 'Semua') return true;
       final bookingDate = DateTime(booking.date.year, booking.date.month, booking.date.day);
       final difference = today.difference(bookingDate).inDays;
@@ -156,7 +167,6 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
       } else if (_activeHistoryFilter == '7 Hari') {
         return difference >= 0 && difference <= 7;
       } else if (_activeHistoryFilter == 'Bulan lalu') {
-        // Last month logic
         int lastMonth = now.month - 1;
         int year = now.year;
         if (lastMonth == 0) {
@@ -171,6 +181,9 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // LOGIKA FIX KETIGA: Validasi kepemilikan jadwal tanding secara mutlak tanpa celah kebocoran data
+    final bool hasActiveBooking = AppData.recentBookings.any((b) => b.username == AppData.currentUser);
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -181,12 +194,14 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              _buildHeader(), 
+              _buildHeader(),
               const SizedBox(height: 24),
               _sectionLabel("Jadwal Anda"),
               const SizedBox(height: 12),
-              hasActiveBooking 
-                  ? _buildBookingReminder() 
+
+              // Jika user saat ini punya jadwal tanding, buat widget reminder. Jika tidak, ke Empty State!
+              hasActiveBooking
+                  ? _buildBookingReminder()
                   : _buildEmptyState(Icons.event_busy_rounded, "Tidak ada jadwal tanding"),
 
               const SizedBox(height: 32),
@@ -207,16 +222,16 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.near_me_rounded, 
-                                 size: 14, 
-                                 color: isNearMeActive ? Colors.black : Colors.white70),
+                            Icon(Icons.near_me_rounded,
+                                size: 14,
+                                color: isNearMeActive ? Colors.black : Colors.white70),
                             const SizedBox(width: 6),
-                            Text("Near Me", 
-                                 style: TextStyle(
-                                   color: isNearMeActive ? Colors.black : Colors.white70,
-                                   fontSize: 11,
-                                   fontWeight: FontWeight.bold,
-                                 )),
+                            Text("Near Me",
+                                style: TextStyle(
+                                  color: isNearMeActive ? Colors.black : Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                )),
                           ],
                         ),
                       ),
@@ -284,7 +299,7 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
     if (filtered.isEmpty) {
       return _buildEmptyState(Icons.event_busy_rounded, "Belum ada riwayat pesanan");
     }
-    
+
     return Column(
       children: filtered.map((booking) => _buildHistoryItem(booking)).toList(),
     );
@@ -314,11 +329,11 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(booking.field.name, 
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(booking.field.name,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 2),
-                Text("${booking.subField} • ${booking.startTime}", 
-                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                Text("${booking.subField} • ${booking.startTime}",
+                    style: const TextStyle(color: Colors.white54, fontSize: 11)),
               ],
             ),
           ),
@@ -330,12 +345,14 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
       ),
     );
   }
+
   Widget _sectionLabel(String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Text(label, style: AppTextStyles.caption),
     );
   }
+
   Widget _buildEmptyState(IconData icon, String message) {
     return Container(
       width: double.infinity,
@@ -358,9 +375,15 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
       ),
     );
   }
+
   Widget _buildBookingReminder() {
-    final booking = AppData.recentBookings.first;
+    // LOGIKA FIX KEEMPAT: Ambil data jadwal HANYA milik user aktif.
+    // Hapus total fallback 'orElse' yang kemarin membocorkan jadwal Anom ke user lain.
+    final booking = AppData.recentBookings.firstWhere(
+          (b) => b.username == AppData.currentUser,
+    );
     final formattedDate = DateFormat('EEEE, dd MMM yyyy').format(booking.date);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(16),
@@ -387,15 +410,16 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
       ),
     );
   }
+
   Widget _buildFieldList() {
-    final displayFields = isNearMeActive 
+    final displayFields = isNearMeActive
         ? AppData.fields.where((f) => f.location.toLowerCase().contains("bojongsoang")).toList()
         : AppData.fields.where((f) => f.location.toLowerCase().contains("bandung")).toList();
 
     if (displayFields.isEmpty) {
       return _buildEmptyState(
-        isNearMeActive ? Icons.near_me_disabled_rounded : Icons.location_off_rounded, 
-        isNearMeActive ? "Tidak ada lapangan di Bojongsoang" : "Tidak ada lapangan di Bandung"
+          isNearMeActive ? Icons.near_me_disabled_rounded : Icons.location_off_rounded,
+          isNearMeActive ? "Tidak ada lapangan di Bojongsoang" : "Tidak ada lapangan di Bandung"
       );
     }
 
@@ -419,14 +443,15 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
           MaterialPageRoute(
             builder: (_) => BookingScreen(field: field),
           ),
-        ),
+        ).then((_) => setState(() {})),
         child: _FieldCard(
           field: field,
-          onTap: () {}, // Handled by FeatureBallAnimation
+          onTap: () {},
         ),
       ),
     );
   }
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -436,7 +461,9 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Halo, Gde Radeva!", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              // LOGIKA FIX KELIMA: String statis "Halo, Gde Radeva!" dibuang total.
+              // Sekarang wajib membaca langsung dari variabel global sesi user aktif.
+              Text("Halo, ${AppData.currentUser}!", style: const TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 4),
               Row(
                 children: const [
@@ -451,13 +478,14 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
             children: [
               _headerIcon(Icons.notifications_none_rounded),
               const SizedBox(width: 10),
-              _headerIcon(Icons.my_location_rounded), 
+              _headerIcon(Icons.my_location_rounded),
             ],
           )
         ],
       ),
     );
   }
+
   Widget _headerIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -466,11 +494,13 @@ class _HomeContentState extends State<HomeContent> with SingleTickerProviderStat
     );
   }
 }
+
 class _NavItem {
   final IconData icon;
   final String label;
   const _NavItem({required this.icon, required this.label});
 }
+
 class _FieldCard extends StatelessWidget {
   final Field field;
   final VoidCallback onTap;
@@ -548,7 +578,7 @@ class _FieldCard extends StatelessWidget {
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]}.',
+          (m) => '${m[1]}.',
     );
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../services/location_service.dart';
+import 'package:geolocator/geolocator.dart'; // Untuk tipe data Position
 import '../models/models.dart';
 import '../theme/app_theme.dart';
-import '../services/location_service.dart';
 import 'booking.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   bool isNearMeActive = false;
+  bool isLoadingLocation = false;
   String searchQuery = '';
   List<Field> filteredFields = AppData.fields.where((f) => f.location.toLowerCase().contains("bandung")).toList();
 
@@ -40,9 +42,53 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
   }
 
-  void _toggleNearMe() {
-    isNearMeActive = !isNearMeActive;
-    _filterFields();
+ void _toggleNearMe() async {
+    if (isNearMeActive) {
+      setState(() {
+        isNearMeActive = false;
+      });
+      _filterFields(); 
+      return;
+    }
+
+    setState(() {
+      isLoadingLocation = true;
+    });
+
+    LocationService locationService = LocationService();
+    Position? position = await locationService.getCurrentPosition();
+
+    if (position == null) {
+      setState(() {
+        isLoadingLocation = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mendapatkan lokasi. Cek GPS/Izin aplikasi.')),
+      );
+      return;
+    }
+
+    List<Field> nearMeResult = [];
+    
+    for (var field in AppData.fields) {
+      double distanceKm = locationService.calculateDistance(
+        position.latitude,
+        position.longitude,
+        field.latitude,   // HARUS ADA di models.dart
+        field.longitude,  // HARUS ADA di models.dart
+      );
+
+      if (distanceKm >= 5.0 && distanceKm <= 7.0) {
+        nearMeResult.add(field);
+      }
+    }
+
+    setState(() {
+      isNearMeActive = true;
+      filteredFields = nearMeResult;
+      isLoadingLocation = false;
+    });
   }
 
   @override
@@ -69,13 +115,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.near_me, 
-                             size: 18, 
-                             color: isNearMeActive ? Colors.black : Colors.white),
+                            size: 18, 
+                            color: isNearMeActive ? Colors.black : Colors.white),
                         const SizedBox(width: 8),
                         Text("Near Me", 
-                             style: TextStyle(
-                               color: isNearMeActive ? Colors.black : Colors.white,
-                               fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                              color: isNearMeActive ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -84,15 +130,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
           Expanded(
-            child: filteredFields.isEmpty 
-              ? _buildEmptyState() 
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: filteredFields.length,
-                  itemBuilder: (context, index) {
-                    return _buildVerticalFieldCard(filteredFields[index]);
-                  },
-                ),
+            child: isLoadingLocation 
+              ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+              : filteredFields.isEmpty 
+                ? _buildEmptyState() 
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: filteredFields.length,
+                    itemBuilder: (context, index) {
+                      return _buildVerticalFieldCard(filteredFields[index]);
+                    },
+                  ),
           ),
         ],
       ),
@@ -180,7 +228,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text("Tersedia: ${field.operationalHours}", 
-                       style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.w600)),
+                      style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),

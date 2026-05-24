@@ -1,0 +1,60 @@
+name: zona_futsal
+description: "A new Flutter project."
+publish_to: 'none'
+
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+
+
+
+  http: ^1.2.1
+  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.1.2
+  
+  # 1. Tambahkan intl untuk memformat tanggal dan mata uang Rupiah
+  intl: ^0.19.0
+  
+  # 2. (Opsional) Tambahkan share_plus jika ingin tombol "Bagikan Tiket" berfungsi
+  share_plus: ^7.2.2
+  qr_flutter: ^4.1.0
+  geolocator: ^14.0.2
+  firebase_core: ^4.7.0
+  firebase_auth: ^6.4.0
+  firebase_messaging: ^16.2.0
+  flutter_local_notifications: ^18.0.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # 3. Daftarkan folder aset jika Anda memiliki gambar logo atau ilustrasi
+  # assets:
+  #   - assets/images/
+  #   # - assets/icons/
+
+  # 4. Tambahkan font SF Pro Display yang Anda gunakan di main.dart dan login.dart
+  # Pastikan file font sudah ada di folder: assets/fonts/
+  # fonts:
+  #   - family: SF Pro Display
+  #     fonts:
+  #       - asset: assets/fonts/SF-Pro-Display-Regular.otf
+  #       - asset: assets/fonts/SF-Pro-Display-Medium.otf
+  #         weight: 500
+  #       - asset: assets/fonts/SF-Pro-Display-Bold.otf
+  #         weight: 700
+  #       - asset: assets/fonts/SF-Pro-Display-Black.otf
+  #         weight: 800

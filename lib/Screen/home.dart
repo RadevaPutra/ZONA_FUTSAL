@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -24,8 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavItem(icon: Icons.person_rounded, label: 'Profil'),
   ];
 
-  // LOGIKA FIX PERTAMA: Jangan gunakan variabel array statis untuk halaman.
-  // Gunakan fungsi switch-case saat build agar widget langsung mendeteksi perubahan user secara real-time saat tab ditekan.
   Widget _buildPage(int index) {
     switch (index) {
       case 0:

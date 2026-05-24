@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zona Futsal Admin Dashboard</title>
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="admin.css">
+    <!-- Phosphor Icons for Modern UI Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <span>ZF</span> Zona Futsal
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="active"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+            <li><a href="#"><i class="ph ph-soccer-ball"></i> Lapangan</a></li>
+            <li><a href="#"><i class="ph ph-calendar-check"></i> Pemesanan</a></li>
+            <li><a href="#"><i class="ph ph-ticket"></i> Voucher Promo</a></li>
+            <li><a href="#"><i class="ph ph-users"></i> Pengguna</a></li>
+            <li style="margin-top: auto;"><a href="#"><i class="ph ph-gear"></i> Pengaturan</a></li>
+            <li><a href="#" style="color: #ef4444;"><i class="ph ph-sign-out"></i> Keluar</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="search-bar">
+                <i class="ph ph-magnifying-glass" style="color: var(--text-muted);"></i>
+                <input type="text" placeholder="Cari ID Booking atau Nama...">
+            </div>
+            <div class="user-profile">
+                <i class="ph ph-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <img src="https://ui-avatars.com/api/?name=Admin+Zona&background=10b981&color=fff" alt="Admin Profile">
+                <span>Admin Zona</span>
+            </div>
+        </header>
+
+        <!-- Widgets -->
+        <section class="dashboard-cards">
+            <div class="card">
+                <h3>Total Pendapatan (Bulan Ini)</h3>
+                <h2>Rp 12.450.000</h2>
+                <span class="trend">+8.2% <i class="ph ph-trend-up"></i></span>
+            </div>
+            <div class="card">
+                <h3>Booking Aktif Hari Ini</h3>
+                <h2>34</h2>
+                <span class="trend">+5.1% <i class="ph ph-trend-up"></i></span>
+            </div>
+            <div class="card">
+                <h3>Total Pengguna</h3>
+                <h2>1,582</h2>
+                <span class="trend">+12.4% <i class="ph ph-trend-up"></i></span>
+            </div>
+        </section>
+
+        <!-- Data Table -->
+        <section class="table-container">
+            <div class="table-header">
+                <h2>Transaksi Futsal Terbaru</h2>
+                <div class="table-actions">
+                    <button><i class="ph ph-funnel"></i> Filter</button>
+                    <button><i class="ph ph-download-simple"></i> Export Data</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Booking</th>
+                        <th>Pelanggan</th>
+                        <th>Lapangan</th>
+                        <th>Tgl & Waktu</th>
+                        <th>Total Bayar</th>
+                        <th>Metode</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#ZF1245</td>
+                        <td class="customer-cell">
+                            <img src="https://ui-avatars.com/api/?name=Radeva+Putra&background=random" alt="Radeva">
+                            <span>Radeva Putra</span>
+                        </td>
+                        <td>Vinyl Court Indoor</td>
+                        <td>24 Mei 2026, 10:00</td>
+                        <td>Rp 90.000</td>
+                        <td>Transfer Bank</td>
+                        <td><span class="badge paid">LUNAS</span></td>
+                    </tr>
+                    <tr>
+                        <td>#ZF1244</td>
+                        <td class="customer-cell">
+                            <img src="https://ui-avatars.com/api/?name=Sarah+L&background=random" alt="Sarah">
+                            <span>Sarah Lee</span>
+                        </td>
+                        <td>Synthetic Grass</td>
+                        <td>24 Mei 2026, 12:00</td>
+                        <td>Rp 130.000</td>
+                        <td>E-Wallet</td>
+                        <td><span class="badge pending">WAITING</span></td>
+                    </tr>
+                    <tr>
+                        <td>#ZF1243</td>
+                        <td class="customer-cell">
+                            <img src="https://ui-avatars.com/api/?name=Michael+R&background=random" alt="Michael">
+                            <span>Michael Rodriguez</span>
+                        </td>
+                        <td>Interlocking Outdoor</td>
+                        <td>23 Mei 2026, 16:00</td>
+                        <td>Rp 160.000</td>
+                        <td>Transfer Bank</td>
+                        <td><span class="badge paid">LUNAS</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+
+</html>

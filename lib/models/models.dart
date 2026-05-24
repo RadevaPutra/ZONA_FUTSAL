@@ -23,8 +23,8 @@ class Field {
     this.isAvailable = true,
     this.location = 'Lokasi Terdekat',
     this.operationalHours = '08:00 - 22:00',
-    this.latitude = -6.9175,
-    this.longitude = 107.6191,
+    required this.latitude,
+    required this.longitude,
   });
 }
 
@@ -146,3 +146,4 @@ class AppData {
   static Map<String, List<String>> bookedSlotsByDate = {};
   static List<Booking> recentBookings = [];
 
+}

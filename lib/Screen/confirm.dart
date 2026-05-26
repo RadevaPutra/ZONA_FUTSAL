@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -92,19 +91,18 @@ class _ConfirmScreenState extends State<ConfirmScreen> with TickerProviderStateM
     );
 
     final String message = '''
-⚽ *E-TICKET FUTSALKU* ⚽
+*E-TICKET FUTSALKU* 
 ------------------------------------------
 Kode Booking : ${widget.booking.bookingCode}
 Lapangan     : ${widget.booking.field.name} (${widget.booking.subField})
 Tanggal      : ${DateFormat('EEEE, dd MMM yyyy').format(widget.booking.date)}
 Waktu        : ${widget.booking.startTime} - ${widget.booking.endTime}
 Durasi       : ${widget.booking.durationHours} Jam${hasDiscount ? '''
-------------------------------------------
 Subtotal     : Rp $formattedSubtotal
 Voucher      : ${widget.booking.voucherCode ?? '-'} (-Rp $formattedDiscount)''' : ''}
 ------------------------------------------
 Total Bayar  : Rp $formattedPrice
-Status       : LUNAS ✅
+Status       : LUNAS 
 ------------------------------------------
 Simpan tiket ini dan Terima kasih telah berolahraga!''';
 
@@ -182,59 +180,50 @@ Simpan tiket ini dan Terima kasih telah berolahraga!''';
                         padding: EdgeInsets.symmetric(vertical: 16),
                         child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                       ),
-                      const Text(
-                        "Transfer Ke Virtual Account",
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+                      // LUNAS BADGE
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.bg,
+                          color: AppColors.accent,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.account_balance_wallet_rounded, 
-                                size: 18, color: AppColors.darkGreen),
-                            const SizedBox(width: 10),
-                            const Text(
-                              "76707821223",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w900, 
-                                  fontSize: 18, 
-                                  letterSpacing: 1.5,
-                                  color: AppColors.textPrimary),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            const SizedBox(width: 10),
-                            GestureDetector(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Nomor VA disalin!")),
-                                );
-                              },
-                              child: const Icon(Icons.copy_rounded, size: 16, color: Colors.grey),
+                          ]
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: AppColors.darkGreen, size: 24),
+                            SizedBox(width: 8),
+                            Text(
+                              "LUNAS",
+                              style: TextStyle(
+                                color: AppColors.darkGreen,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20,
+                                letterSpacing: 2.0,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      QrImageView(
-                        data: widget.booking.bookingCode,
-                        version: QrVersions.auto,
-                        size: 160.0,
-                        gapless: false,
-                        foregroundColor: const Color(0xFF0F3D2E),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Terima kasih, pembayaran Anda\ntelah berhasil kami terima.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 24),
                       Text(
                         widget.booking.bookingCode,
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 20,
-                          letterSpacing: 4,
                           color: Color(0xFF0F3D2E),
                         ),
                       ),
